@@ -1,0 +1,20 @@
+o11ycare — dispatcher-outage recovery experiment
+Run date: September 21, 2026. All times UTC.
+Sanitized summary of the recorded run; internal identifiers and addresses omitted.
+
+19:19:00 START expected=10000 rate=100 payload_bytes=256 outage=2m recovery_timeout=5m
+19:19:54 BASELINE passed: one numbered record and completion marker found in Loki
+19:19:56 SCALE_DOWN confirmed: no dispatcher pods remain
+19:19:58 GENERATOR started; expected=10000; outage timer=2m
+19:21:58 RESTORE requested_replicas=1
+19:22:06 RESTORE ready_replicas=1
+19:22:06 VERIFY unique=0 missing=10000 duplicates=0 marker=false job_completed=true
+19:22:19 VERIFY unique=4651 missing=5349 duplicates=0 marker=false job_completed=true
+19:22:22 VERIFY unique=10000 missing=0 duplicates=0 marker=true job_completed=true
+19:22:22 CLEANUP dispatcher restored to one replica
+19:22:22 RESULT PASS: all expected IDs delivered; cleanup completed
+
+Scope: delivery completeness through one dispatcher outage. Buffer occupancy was
+observed, not asserted. Duplicates are API-observable only. This experiment does
+not establish exactly-once delivery, full-buffer behavior, four-hour retention,
+disk-full resilience, or recovery across pod/node loss.
