@@ -1,20 +1,43 @@
-o11ycare — dispatcher-outage recovery experiment
-Run date: September 21, 2026. All times UTC.
-Sanitized summary of the recorded run; internal identifiers and addresses omitted.
+o11ycare — two-tenant backpressure recovery
+Result: PASS
+Run: ts-20260929-002929-4443404d
+Date: September 29, 2026 (UTC). Environment: Docker Desktop.
+Public summary of the generated report and run log; local paths and cluster identifiers omitted.
 
-19:19:00 START expected=10000 rate=100 payload_bytes=256 outage=2m recovery_timeout=5m
-19:19:54 BASELINE passed: one numbered record and completion marker found in Loki
-19:19:56 SCALE_DOWN confirmed: no dispatcher pods remain
-19:19:58 GENERATOR started; expected=10000; outage timer=2m
-19:21:58 RESTORE requested_replicas=1
-19:22:06 RESTORE ready_replicas=1
-19:22:06 VERIFY unique=0 missing=10000 duplicates=0 marker=false job_completed=true
-19:22:19 VERIFY unique=4651 missing=5349 duplicates=0 marker=false job_completed=true
-19:22:22 VERIFY unique=10000 missing=0 duplicates=0 marker=true job_completed=true
-19:22:22 CLEANUP dispatcher restored to one replica
-19:22:22 RESULT PASS: all expected IDs delivered; cleanup completed
+WORKLOAD
+50,000 numbered records per tenant; 100,000 total.
+Configured rate: 500 records/second per tenant. Message payload: 256 bytes.
+Concurrent generators; configured outage hold: 2 minutes.
+Cross-tenant negative-query observation window: 90 seconds.
 
-Scope: delivery completeness through one dispatcher outage. Buffer occupancy was
-observed, not asserted. Duplicates are API-observable only. This experiment does
-not establish exactly-once delivery, full-buffer behavior, four-hour retention,
-disk-full resilience, or recovery across pod/node loss.
+DELIVERY
+Tenant    Expected   Unique received   Missing   Observed duplicates   Completion marker
+team-a    50,000     50,000            0         0                     true
+team-b    50,000     50,000            0         0                     true
+
+BUFFER
+Normal-traffic maximum over the baseline window: 10,688 bytes
+Observed outage peak: 134,198,984 bytes
+After recovery: 3,632 bytes
+Metrics include background traffic.
+
+SELECTED TIMELINE (UTC)
+00:29:29 Test started
+00:32:11 No dispatcher pods remain
+00:32:13 Team A generator launched
+00:32:15 Team B generator launched
+00:34:16 Both generators completed; buffer growth confirmed
+00:34:22 Dispatcher ready at original replica count: 1
+00:35:13 Team A: 50,000 unique records, 0 missing, 0 observed duplicates
+00:35:19 Team B: 50,000 unique records, 0 missing, 0 observed duplicates
+00:36:50 Buffer drained to normal range; isolation checks passed; cleanup completed
+
+Scope: every expected sequence ID and both completion markers recovered under
+the correct tenant; both cross-tenant queries empty during the observation window;
+observed buffer growth and drain; original dispatcher replica count restored.
+These observation times are not precise per-record delivery latencies.
+
+Limits: a specific recovery test, not a universal loss-free guarantee or throughput
+benchmark. Does not establish exactly-once delivery, full-buffer behavior, disk-full
+resilience, unlimited retention, pod/node-loss recovery, authentication, or
+noisy-neighbor isolation. Source code and private operational artifacts are not published.
